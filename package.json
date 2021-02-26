@@ -4,6 +4,8 @@
   "description": "Baku SERP Status Telegram Bot",
   "main": "bakuSERPbot.js",
   "dependencies": {
+    "dotenv": "^8.2.0",
+    "read-last-lines": "^1.8.0",
     "telegraf": "4.1.0"
   },
   "devDependencies": {},
