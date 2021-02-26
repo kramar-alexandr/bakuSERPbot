@@ -23,6 +23,7 @@ function getLasthansaLog(ctx){
     ctx.reply('res');
     readLastLines.read(process.env.LOG_PATH, 50)
 	.then((lines) => {
+        console.log(ctx.update.message.from);
         ctx.reply(lines);
         });
     //readLastLines.read(process.env.LOG_PATH, 50, (lines) => {
