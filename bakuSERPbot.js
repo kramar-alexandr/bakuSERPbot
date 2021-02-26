@@ -67,5 +67,5 @@ function getLasthansaLog(ctx){
 	.then((lines) => {
         console.log(ctx.update.message.from);
         ctx.reply(lines);
-        });
+    });
 }
