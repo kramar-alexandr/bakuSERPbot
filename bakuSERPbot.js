@@ -1,6 +1,5 @@
 require('dotenv').config()
 const { Telegraf } = require('telegraf');
-//const token = '1612585342:AAEpyJGuMUTA7XQcyW4JU2JVlIIKa4y74NU';
 const readLastLines = require('read-last-lines');
 const logpath = '';
 let admitusers = {};
@@ -19,14 +18,6 @@ bot.help((ctx) => ctx.reply('Send me a sticker'))
 //bot.on('sticker', (ctx) => ctx.reply('👍'))
 //bot.hears('hi', (ctx) => ctx.reply('Hey there'))
 //bot.hears('log', (ctx) => getLasthansaLog(ctx))
-
-bot.on('message', (ctx) => ctx.telegram.sendMessage(//butons test
-    ctx.from.id,
-    'Like?',
-    inlineMessageRatingKeyboard)
-)
-bot.action('like', (ctx) => ctx.editMessageText('🎉 Awesome! 🎉'))
-bot.action('dislike', (ctx) => ctx.editMessageText('okey'))
 
 bot.command('log', (ctx) => getLasthansaLog(ctx))
 bot.command('login', (ctx) => LogIn(ctx))
