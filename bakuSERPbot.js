@@ -1,39 +1,69 @@
 require('dotenv').config()
 const { Telegraf } = require('telegraf');
-const Markup = require('telegraf/markup')
+const { Markup } = require('telegraf');
 const readLastLines = require('read-last-lines');
 const logpath = '';
 let admitusers = {};
 
 
-/* bot commands for @botFather
-log - Get SERP log 
-login - write password to use bot
-
-*/
-
 const bot = new Telegraf(process.env.BOT_TOKEN)
-//const bot = new Telegraf(token)
 bot.start((ctx) => ctx.reply('Welcome'))
 bot.help((ctx) => ctx.reply('Send me a sticker'))
-//bot.on('sticker', (ctx) => ctx.reply('👍'))
-//bot.hears('hi', (ctx) => ctx.reply('Hey there'))
-//bot.hears('log', (ctx) => getLasthansaLog(ctx))
+bot.hears(process.env.PASS, (ctx) => {
+    ctx.telegram.deleteMessage(ctx.chat.id,ctx.update.message.message_id);
+    LogIn(ctx);    
+})
 
-bot.command('log', (ctx) => getLasthansaLog(ctx))
-bot.command('login', (ctx) => LogIn(ctx))
+bot.on('text', (ctx) => {
+    if(isLogin(ctx)){
+        drawMenu(ctx);
+    }
+})
+bot.action('drawLog', (ctx) => getLasthansaLog(ctx))   
+bot.action('restartServer', (ctx) => shutDownSERP(ctx,1))   
+bot.action('hardRestartServer', (ctx) => shutDownSERP(ctx,2))   
+bot.action('usersList', (ctx) => usersList(ctx))   
 bot.launch()
 
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'))
 process.once('SIGTERM', () => bot.stop('SIGTERM'))
 
+
+function drawMenu(ctx){
+    bot.telegram.sendMessage(ctx.chat.id, 'Select', {
+        reply_markup: {
+            inline_keyboard: [
+                [
+                    {text:'Log', callback_data: 'drawLog'},
+                    {text:'Kill', callback_data: 'restartServer'},
+                    {text:'Hard Kill', callback_data: 'hardRestartServer'},
+                    {text:'Users List', callback_data: 'usersList'}
+                ]
+            ]
+        }
+    })
+}
+
 function LoginError(ctx){
     ctx.reply('Please login');
 }
 
 function isLogin(ctx){
-    let curid = ctx.update.message.from.id;
+    let curid
+    try{
+        if(ctx.update.message){
+            curid = ctx.update.message.from.id
+        }
+    }catch(error){console.log(error);}
+
+    if(!curid){
+        try{
+            if(ctx.update.callback_query){
+                curid = ctx.update.callback_query.from.id
+            }
+        }catch(error){console.log(error);}
+    }
     if(admitusers[curid]){
         return true;
     }else{
@@ -42,17 +72,51 @@ function isLogin(ctx){
     }
 }
 
+function shutDownSERP(ctx,type){
+    if(!isLogin(ctx)){
+        return 'Not loged';
+    }
+    try{
+        var path = process.env.SERP_PATH + '/hansa.pid';
+        path = path.replace(/\/\//g,"\/");
+        readLastLines.read(path, 1)
+        .then((lines) => {
+            try{
+                if(lines){
+                    if(type==1){
+                        process.kill(lines)
+                        ctx.reply(lines);
+                    }
+                    if(type==2){
+                        process.kill(lines,9)
+                        ctx.reply(lines);
+                    }
+                }
+            }catch(error){ctx.reply(error);}
+        });
+    }catch(error){console.log(error);}
+}
+
+function usersList(ctx){
+    if(!isLogin(ctx)){
+        return 'Not loged';
+    }
+    ctx.reply(Object.values(admitusers).map((user) =>{return user.username}));
+}
+
+
 function LogIn(ctx){
     let curid = ctx.update.message.from.id;
     if(admitusers[curid]){
-        ctx.reply('Already logined');
+        drawMenu(ctx);
     }else{
-        var pass = ctx.update.message.text.split(' ')[1];
+        var pass = ctx.update.message.text;
         if(pass){
             console.log(pass);
             if(pass==process.env.PASS){
-                admitusers[curid] = true;
-                ctx.reply('👍');
+                console.log(ctx);
+                admitusers[curid] = ctx.message.from;
+                drawMenu(ctx);
             }else {
                 LoginError(ctx);
             }
@@ -65,9 +129,12 @@ function getLasthansaLog(ctx){
     if(!isLogin(ctx)){
         return 'Not loged';
     }
-    readLastLines.read(process.env.LOG_PATH, 50)
-	.then((lines) => {
-        console.log(ctx.update.message.from);
-        ctx.reply(lines);
-    });
+    let path = (process.env.SERP_PATH + '/hansa.log').replace(/\/\//g,"\/");
+    console.log(path);
+    try{
+        readLastLines.read(path, 50)
+        .then((lines) => {
+            ctx.reply(lines);
+        });
+    }catch(error){ctx.reply(error);}
 }
