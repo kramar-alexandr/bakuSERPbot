@@ -2,7 +2,6 @@ require('dotenv').config()
 const { Telegraf } = require('telegraf');
 const { Markup } = require('telegraf');
 const readLastLines = require('read-last-lines');
-const logpath = '';
 let admitusers = {};
 
 
@@ -112,9 +111,7 @@ function LogIn(ctx){
     }else{
         var pass = ctx.update.message.text;
         if(pass){
-            console.log(pass);
             if(pass==process.env.PASS){
-                console.log(ctx);
                 admitusers[curid] = ctx.message.from;
                 drawMenu(ctx);
             }else {
@@ -130,7 +127,6 @@ function getLasthansaLog(ctx){
         return 'Not loged';
     }
     let path = (process.env.SERP_PATH + '/hansa.log').replace(/\/\//g,"\/");
-    console.log(path);
     try{
         readLastLines.read(path, 50)
         .then((lines) => {
