@@ -3,6 +3,7 @@ const { Telegraf } = require('telegraf');
 const { Markup } = require('telegraf');
 const readLastLines = require('read-last-lines');
 let admitusers = {};
+const fs  = require('fs');
 
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
@@ -22,7 +23,11 @@ bot.action('drawLog', (ctx) => getLasthansaLog(ctx))
 bot.action('restartServer', (ctx) => shutDownSERP(ctx,1))   
 bot.action('hardRestartServer', (ctx) => shutDownSERP(ctx,2))   
 bot.action('usersList', (ctx) => usersList(ctx))   
+bot.action('serverOfflineUnderstand', (ctx) => serverOfflineUnderstand(ctx))   
 bot.launch()
+
+
+getServerStatus();
 
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'))
@@ -96,6 +101,14 @@ function shutDownSERP(ctx,type){
     }catch(error){console.log(error);}
 }
 
+
+function serverOfflineUnderstand(ctx){
+    if(!isLogin(ctx)){
+        return 'Not loged';
+    }
+    admitusers[ctx.update.callback_query.from.id].needtosenderror = 10;
+}
+
 function usersList(ctx){
     if(!isLogin(ctx)){
         return 'Not loged';
@@ -113,6 +126,9 @@ function LogIn(ctx){
         if(pass){
             if(pass==process.env.PASS){
                 admitusers[curid] = ctx.message.from;
+                admitusers[curid]['chat'] = ctx.message.chat;
+                admitusers[curid].needtosenderror = 0;
+                console.log(admitusers[curid]);
                 drawMenu(ctx);
             }else {
                 LoginError(ctx);
@@ -134,3 +150,52 @@ function getLasthansaLog(ctx){
         });
     }catch(error){ctx.reply(error);}
 }
+
+function sendUserServerOffline(user){
+    console.log('sendUserServerOffline ' + user.needtosenderror);
+    if(user.needtosenderror<10){
+        user.needtosenderror++;
+        bot.telegram.sendMessage(user.chat.id,'Server is offline', {
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        {text:'Understand', callback_data: 'serverOfflineUnderstand'},
+                    ]
+                ]
+            }
+        });
+    }
+}
+
+function getServerStatus(){
+    console.log('getServerStatus');
+    let path = (process.env.SERP_PATH + '/hansa.pid').replace(/\/\//g,"\/");
+    Object.values(admitusers).forEach(user => {
+        try{
+            if(!fs.existsSync(path)){           
+                sendUserServerOffline(user);
+            }else{
+                try{
+                    readLastLines.read(path, 1)
+                    .then((lines) => {
+                        try{
+                            if(process.kill(lines,0)){
+                                if(user.needtosenderror>0){
+                                    bot.telegram.sendMessage(user.chat.id,'Server is Online');
+                                }
+                                user.needtosenderror = 0;
+                            }
+
+                        }catch(error){
+                            console.log(error);
+                            sendUserServerOffline(user);
+                        }
+                    });
+                }catch(error){sendUserServerOffline(user);}
+            }
+        }catch(error){console.log(error);}
+    });
+
+    setTimeout(getServerStatus, 10000);
+}
+
