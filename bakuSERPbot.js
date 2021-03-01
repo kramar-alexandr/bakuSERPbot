@@ -113,8 +113,13 @@ function usersList(ctx){
     if(!isLogin(ctx)){
         return 'Not loged';
     }else{
-        console.log(Object.values(admitusers).map((user) =>{return user.username}));
-        ctx.reply(Object.values(admitusers).map((user) =>{return user.username}));
+        ctx.reply(Object.values(admitusers).map((user) =>{
+            let name = '';
+            if(user.username){name = name + ' ' + user.username};
+            if(user.first_name){name = name + ' ' + user.first_name};
+            if(user.last_name){name = name + ' ' + user.last_name};
+            return name
+        }));
     }
 }
 
