@@ -112,8 +112,10 @@ function serverOfflineUnderstand(ctx){
 function usersList(ctx){
     if(!isLogin(ctx)){
         return 'Not loged';
+    }else{
+        console.log(Object.values(admitusers).map((user) =>{return user.username}));
+        ctx.reply(Object.values(admitusers).map((user) =>{return user.username}));
     }
-    ctx.reply(Object.values(admitusers).map((user) =>{return user.username}));
 }
 
 
