@@ -7,13 +7,40 @@ const fs  = require('fs');
 
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
-bot.start((ctx) => ctx.reply('Welcome'))
+bot.start((ctx) => { 
+    ctx.reply('Welcome');
+    LogIn(ctx);
+})
 bot.help((ctx) => ctx.reply('Send me a sticker'))
 bot.hears(process.env.PASS, (ctx) => {
     ctx.telegram.deleteMessage(ctx.chat.id,ctx.update.message.message_id);
     LogIn(ctx);    
 })
+try{
+    console.log(process.env.USERS_FILE)
+fs.readFile(process.env.USERS_FILE || 'Users', (err, content) => {
+    if (err) return console.log('Error loading clientsfile:', err);
+    if(content.length>0){
+        try{
+            admitusers = JSON.parse(content);
+        }catch{
+            updateClients();
+        }
+    }else{
+        updateClients();
+    }
+  });
+}catch(error){
+    console.log(error)
+    updateClients();
+}
 
+function updateClients(){
+    fs.writeFile(process.env.USERS_FILE || 'Users', JSON.stringify(admitusers, null, 2), { overwrite: true }, function (err) {
+        if (err) throw err;
+        console.log('It\'s saved!');
+    });
+}
 bot.on('text', (ctx) => {
     if(isLogin(ctx)){
         drawMenu(ctx);
@@ -107,6 +134,7 @@ function serverOfflineUnderstand(ctx){
         return 'Not loged';
     }
     admitusers[ctx.update.callback_query.from.id].needtosenderror = 10;
+    updateClients();
 }
 
 function usersList(ctx){
@@ -137,6 +165,7 @@ function LogIn(ctx){
                 admitusers[curid].needtosenderror = 0;
                 console.log(admitusers[curid]);
                 drawMenu(ctx);
+                updateClients();
             }else {
                 LoginError(ctx);
             }
@@ -191,6 +220,7 @@ function getServerStatus(){
                                     bot.telegram.sendMessage(user.chat.id,'Server is Online');
                                 }
                                 user.needtosenderror = 0;
+                                updateClients();
                             }
 
                         }catch(error){
